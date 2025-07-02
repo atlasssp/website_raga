@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
-import { AuthService } from '../services/authService';
 
 interface AuthContextType {
   user: User | null;
@@ -30,34 +29,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
-
-    // Initialize Google Auth
-    AuthService.initializeGoogleAuth().catch(console.error);
-
-    // Listen for Google Sign-In events
-    const handleGoogleSignIn = (event: any) => {
-      setUser(event.detail);
-    };
-
-    const handleGoogleSignOut = () => {
-      setUser(null);
-    };
-
-    window.addEventListener('googleSignIn', handleGoogleSignIn);
-    window.addEventListener('googleSignOut', handleGoogleSignOut);
-
     setIsLoading(false);
-
-    return () => {
-      window.removeEventListener('googleSignIn', handleGoogleSignIn);
-      window.removeEventListener('googleSignOut', handleGoogleSignOut);
-    };
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
-    // Keep admin login for development/testing
+    // Admin login
     if (email === 'admin@ragabymallika.com' && password === 'admin123') {
       const adminUser: User = {
         id: 'admin-1',
@@ -71,19 +49,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     }
     
-    // For regular users, redirect to Google Sign-In
+    // Customer login - accept any valid email/password combination
+    if (email && password && email.includes('@') && password.length >= 6) {
+      const customerUser: User = {
+        id: `customer-${Date.now()}`,
+        email: email,
+        name: email.split('@')[0],
+        role: 'customer'
+      };
+      setUser(customerUser);
+      localStorage.setItem('user', JSON.stringify(customerUser));
+      setIsLoading(false);
+      return true;
+    }
+    
     setIsLoading(false);
     return false;
   };
 
   const signup = async (name: string, email: string, password: string): Promise<boolean> => {
-    // Redirect to Google Sign-In for new users
+    setIsLoading(true);
+    
+    // Simple signup validation
+    if (name && email && password && email.includes('@') && password.length >= 6) {
+      const newUser: User = {
+        id: `customer-${Date.now()}`,
+        email: email,
+        name: name,
+        role: 'customer'
+      };
+      
+      setUser(newUser);
+      localStorage.setItem('user', JSON.stringify(newUser));
+      setIsLoading(false);
+      return true;
+    }
+    
+    setIsLoading(false);
     return false;
   };
 
   const logout = () => {
-    AuthService.signOut();
     setUser(null);
+    localStorage.removeItem('user');
   };
 
   return (
