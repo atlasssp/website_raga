@@ -2,9 +2,32 @@ import { supabase } from '../lib/supabase';
 import { Product, Category } from '../types';
 
 export class ProductService {
+  // Check if Supabase is properly configured
+  static async checkConnection(): Promise<boolean> {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('count')
+        .limit(1);
+      
+      return !error;
+    } catch (error) {
+      console.error('Supabase connection error:', error);
+      return false;
+    }
+  }
+
   // Upload image to Supabase Storage
   static async uploadImage(file: File, folder: string = 'products'): Promise<string> {
     try {
+      // Check if storage is available
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      
+      if (bucketsError) {
+        console.warn('Storage not available, using placeholder image');
+        return '/images/products/4.jpg';
+      }
+
       const fileExt = file.name.split('.').pop();
       const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
@@ -17,7 +40,7 @@ export class ProductService {
 
       if (error) {
         console.error('Storage upload error:', error);
-        throw new Error(`Failed to upload image: ${error.message}`);
+        return '/images/products/4.jpg';
       }
 
       // Get public URL
@@ -28,7 +51,6 @@ export class ProductService {
       return publicUrl;
     } catch (error) {
       console.error('Upload image error:', error);
-      // Return a placeholder image URL if upload fails
       return '/images/products/4.jpg';
     }
   }
@@ -36,7 +58,8 @@ export class ProductService {
   // Delete image from Supabase Storage
   static async deleteImage(imageUrl: string): Promise<void> {
     try {
-      // Extract file path from URL
+      if (!imageUrl.includes('product-images')) return;
+
       const urlParts = imageUrl.split('/');
       const bucketIndex = urlParts.findIndex(part => part === 'product-images');
       if (bucketIndex === -1) return;
@@ -58,6 +81,12 @@ export class ProductService {
   // Fetch all categories
   static async getCategories(): Promise<Category[]> {
     try {
+      const isConnected = await this.checkConnection();
+      if (!isConnected) {
+        console.warn('Database not connected, using default categories');
+        return this.getDefaultCategories();
+      }
+
       const { data, error } = await supabase
         .from('categories')
         .select('*')
@@ -65,10 +94,16 @@ export class ProductService {
 
       if (error) {
         console.error('Fetch categories error:', error);
-        throw new Error(`Failed to fetch categories: ${error.message}`);
+        return this.getDefaultCategories();
       }
 
-      return (data || []).map(cat => ({
+      if (!data || data.length === 0) {
+        // Create default categories if none exist
+        await this.createDefaultCategories();
+        return this.getDefaultCategories();
+      }
+
+      return data.map(cat => ({
         id: cat.id,
         name: cat.name,
         description: cat.description || '',
@@ -76,18 +111,50 @@ export class ProductService {
       }));
     } catch (error) {
       console.error('Get categories error:', error);
-      // Return default categories if database fails
-      return [
-        { id: '1', name: 'Kurtis', description: 'Beautiful traditional kurtis', image: '/images/products/4.jpg' },
-        { id: '2', name: 'Lehengas', description: 'Elegant lehengas', image: '/images/products/9.jpg' },
-        { id: '3', name: 'Co-ord Sets', description: 'Trendy coordinated sets', image: '/images/products/10.jpg' }
-      ];
+      return this.getDefaultCategories();
+    }
+  }
+
+  // Get default categories
+  static getDefaultCategories(): Category[] {
+    return [
+      { id: 'default-1', name: 'Kurtis', description: 'Beautiful traditional kurtis', image: '/images/products/4.jpg' },
+      { id: 'default-2', name: 'Lehengas', description: 'Elegant lehengas', image: '/images/products/9.jpg' },
+      { id: 'default-3', name: 'Co-ord Sets', description: 'Trendy coordinated sets', image: '/images/products/10.jpg' },
+      { id: 'default-4', name: 'Anarkali Sets', description: 'Classic Anarkali suits', image: '/images/products/11.jpg' },
+      { id: 'default-5', name: 'Pure Cottons', description: 'Comfortable pure cotton collections', image: '/images/products/12.jpg' }
+    ];
+  }
+
+  // Create default categories in database
+  static async createDefaultCategories(): Promise<void> {
+    try {
+      const defaultCategories = this.getDefaultCategories();
+      
+      for (const category of defaultCategories) {
+        await supabase
+          .from('categories')
+          .insert({
+            name: category.name,
+            description: category.description,
+            image_url: category.image
+          })
+          .select()
+          .single();
+      }
+    } catch (error) {
+      console.error('Error creating default categories:', error);
     }
   }
 
   // Create category
   static async createCategory(category: Omit<Category, 'id'>): Promise<Category> {
     try {
+      const isConnected = await this.checkConnection();
+      if (!isConnected) {
+        throw new Error('Database connection not available. Please check your Supabase configuration.');
+      }
+
       const { data, error } = await supabase
         .from('categories')
         .insert({
@@ -118,6 +185,11 @@ export class ProductService {
   // Update category
   static async updateCategory(id: string, updates: Partial<Category>): Promise<Category> {
     try {
+      const isConnected = await this.checkConnection();
+      if (!isConnected) {
+        throw new Error('Database connection not available. Please check your Supabase configuration.');
+      }
+
       const { data, error } = await supabase
         .from('categories')
         .update({
@@ -150,6 +222,11 @@ export class ProductService {
   // Delete category
   static async deleteCategory(id: string): Promise<void> {
     try {
+      const isConnected = await this.checkConnection();
+      if (!isConnected) {
+        throw new Error('Database connection not available. Please check your Supabase configuration.');
+      }
+
       const { error } = await supabase
         .from('categories')
         .delete()
@@ -168,6 +245,12 @@ export class ProductService {
   // Fetch all products with their images and category info
   static async getProducts(): Promise<Product[]> {
     try {
+      const isConnected = await this.checkConnection();
+      if (!isConnected) {
+        console.warn('Database not connected, returning empty products list');
+        return [];
+      }
+
       const { data: products, error: productsError } = await supabase
         .from('products')
         .select(`
@@ -186,7 +269,7 @@ export class ProductService {
 
       if (productsError) {
         console.error('Fetch products error:', productsError);
-        throw new Error(`Failed to fetch products: ${productsError.message}`);
+        return [];
       }
 
       return (products || []).map(product => ({
@@ -207,7 +290,6 @@ export class ProductService {
       }));
     } catch (error) {
       console.error('Get products error:', error);
-      // Return empty array if database fails
       return [];
     }
   }
@@ -215,31 +297,57 @@ export class ProductService {
   // Create product with images
   static async createProduct(productData: Omit<Product, 'id' | 'createdAt'>, imageFiles: File[] = []): Promise<Product> {
     try {
-      // First, get category ID
+      const isConnected = await this.checkConnection();
+      if (!isConnected) {
+        throw new Error('Database connection not available. Please check your Supabase configuration in the .env file.');
+      }
+
+      // Validate required fields
+      if (!productData.name || !productData.price || !productData.category) {
+        throw new Error('Name, price, and category are required fields.');
+      }
+
+      // Get category ID
       let categoryId = null;
       if (productData.category) {
-        const { data: category } = await supabase
+        const { data: category, error: categoryError } = await supabase
           .from('categories')
           .select('id')
           .eq('name', productData.category)
           .single();
-        categoryId = category?.id;
+        
+        if (categoryError) {
+          console.warn('Category not found, creating new category');
+          // Create category if it doesn't exist
+          const newCategory = await this.createCategory({
+            name: productData.category,
+            description: `${productData.category} collection`,
+            image: '/images/products/4.jpg'
+          });
+          categoryId = newCategory.id;
+        } else {
+          categoryId = category?.id;
+        }
       }
 
       // Create product
+      const productInsert = {
+        name: productData.name.trim(),
+        description: productData.description?.trim() || '',
+        price: Number(productData.price),
+        original_price: productData.originalPrice ? Number(productData.originalPrice) : null,
+        category_id: categoryId,
+        sizes: productData.sizes && productData.sizes.length > 0 ? productData.sizes : ['S', 'M', 'L', 'XL', 'XXL', '3XL'],
+        colors: productData.colors && productData.colors.length > 0 ? productData.colors : ['Default'],
+        stock: Number(productData.stock) || 0,
+        featured: Boolean(productData.featured)
+      };
+
+      console.log('Creating product with data:', productInsert);
+
       const { data: product, error: productError } = await supabase
         .from('products')
-        .insert({
-          name: productData.name,
-          description: productData.description,
-          price: productData.price,
-          original_price: productData.originalPrice,
-          category_id: categoryId,
-          sizes: productData.sizes,
-          colors: productData.colors,
-          stock: productData.stock,
-          featured: productData.featured
-        })
+        .insert(productInsert)
         .select()
         .single();
 
@@ -248,16 +356,19 @@ export class ProductService {
         throw new Error(`Failed to create product: ${productError.message}`);
       }
 
+      console.log('Product created successfully:', product);
+
       // Upload images if provided
       const imageUrls: string[] = [];
       if (imageFiles.length > 0) {
+        console.log('Uploading images:', imageFiles.length);
         for (let i = 0; i < imageFiles.length; i++) {
           try {
             const imageUrl = await this.uploadImage(imageFiles[i]);
             imageUrls.push(imageUrl);
 
             // Save image record
-            await supabase
+            const { error: imageError } = await supabase
               .from('product_images')
               .insert({
                 product_id: product.id,
@@ -265,15 +376,19 @@ export class ProductService {
                 alt_text: productData.name,
                 sort_order: i
               });
+
+            if (imageError) {
+              console.error('Failed to save image record:', imageError);
+            }
           } catch (error) {
             console.error('Failed to upload image:', error);
           }
         }
-      } else if (productData.images.length > 0) {
+      } else if (productData.images && productData.images.length > 0) {
         // Use existing image URLs
         for (let i = 0; i < productData.images.length; i++) {
           try {
-            await supabase
+            const { error: imageError } = await supabase
               .from('product_images')
               .insert({
                 product_id: product.id,
@@ -281,11 +396,21 @@ export class ProductService {
                 alt_text: productData.name,
                 sort_order: i
               });
+
+            if (imageError) {
+              console.error('Failed to save image record:', imageError);
+            } else {
+              imageUrls.push(productData.images[i]);
+            }
           } catch (error) {
             console.error('Failed to save image record:', error);
           }
         }
-        imageUrls.push(...productData.images);
+      }
+
+      // If no images were uploaded, use default
+      if (imageUrls.length === 0) {
+        imageUrls.push('/images/products/4.jpg');
       }
 
       return {
@@ -299,7 +424,7 @@ export class ProductService {
         colors: product.colors || ['Default'],
         stock: product.stock,
         featured: product.featured,
-        images: imageUrls.length > 0 ? imageUrls : ['/images/products/4.jpg'],
+        images: imageUrls,
         createdAt: product.created_at
       };
     } catch (error) {
@@ -311,6 +436,11 @@ export class ProductService {
   // Update product
   static async updateProduct(id: string, updates: Partial<Product>, newImageFiles: File[] = []): Promise<Product> {
     try {
+      const isConnected = await this.checkConnection();
+      if (!isConnected) {
+        throw new Error('Database connection not available. Please check your Supabase configuration.');
+      }
+
       // Get category ID if category is being updated
       let categoryId: string | undefined;
       if (updates.category) {
@@ -395,6 +525,11 @@ export class ProductService {
   // Delete product
   static async deleteProduct(id: string): Promise<void> {
     try {
+      const isConnected = await this.checkConnection();
+      if (!isConnected) {
+        throw new Error('Database connection not available. Please check your Supabase configuration.');
+      }
+
       // Get product images to delete from storage
       const { data: images } = await supabase
         .from('product_images')

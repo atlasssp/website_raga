@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Package, Users, ShoppingCart, TrendingUp, Eye, EyeOff, Instagram, Upload, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Package, Users, ShoppingCart, TrendingUp, Eye, EyeOff, Instagram, Upload, Loader2, AlertCircle, Database, Wifi, WifiOff } from 'lucide-react';
 import { Product, Category } from '../types';
 import { ProductService } from '../services/productService';
 import InstagramIntegration from '../components/Admin/InstagramIntegration';
@@ -15,6 +15,7 @@ const Admin: React.FC = () => {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isConnected, setIsConnected] = useState(false);
 
   // Product form state
   const [productForm, setProductForm] = useState({
@@ -46,19 +47,43 @@ const Admin: React.FC = () => {
     loadData();
   }, []);
 
+  const checkDatabaseConnection = async () => {
+    try {
+      const connected = await ProductService.checkConnection();
+      setIsConnected(connected);
+      return connected;
+    } catch (error) {
+      setIsConnected(false);
+      return false;
+    }
+  };
+
   const loadData = async () => {
     setIsLoading(true);
     setError('');
+    
     try {
+      // Check database connection first
+      const connected = await checkDatabaseConnection();
+      
+      if (!connected) {
+        setError('Database connection failed. Please check your Supabase configuration in the .env file.');
+        setIsLoading(false);
+        return;
+      }
+
       const [products, categories] = await Promise.all([
         ProductService.getProducts(),
         ProductService.getCategories()
       ]);
+      
       setProductList(products);
       setCategoryList(categories);
-    } catch (err) {
+      
+      console.log('Loaded data:', { products: products.length, categories: categories.length });
+    } catch (err: any) {
       console.error('Error loading data:', err);
-      setError('Failed to load data. Please check your database connection.');
+      setError(`Failed to load data: ${err.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -116,8 +141,15 @@ const Admin: React.FC = () => {
       return;
     }
 
+    if (!isConnected) {
+      setError('Database not connected. Please check your Supabase configuration.');
+      return;
+    }
+
     setIsLoading(true);
     try {
+      console.log('Adding product with form data:', productForm);
+      
       const newProduct: Omit<Product, 'id' | 'createdAt'> = {
         name: productForm.name.trim(),
         description: productForm.description.trim(),
@@ -131,7 +163,12 @@ const Admin: React.FC = () => {
         images: productForm.images
       };
 
+      console.log('Creating product:', newProduct);
+
       const createdProduct = await ProductService.createProduct(newProduct, selectedImageFiles);
+      
+      console.log('Product created successfully:', createdProduct);
+      
       setProductList([createdProduct, ...productList]);
       resetProductForm();
       setShowAddProduct(false);
@@ -399,8 +436,28 @@ const Admin: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600">Manage your RAGA BY MALLIKA store with database integration</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+              <p className="text-gray-600">Manage your RAGA BY MALLIKA store with database integration</p>
+            </div>
+            
+            {/* Connection Status */}
+            <div className="flex items-center space-x-2">
+              {isConnected ? (
+                <div className="flex items-center space-x-2 text-green-600">
+                  <Wifi className="h-5 w-5" />
+                  <span className="text-sm font-medium">Database Connected</span>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2 text-red-600">
+                  <WifiOff className="h-5 w-5" />
+                  <span className="text-sm font-medium">Database Disconnected</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
           {error && (
             <div className="mt-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-start space-x-2">
               <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
@@ -412,6 +469,27 @@ const Admin: React.FC = () => {
                 >
                   Dismiss
                 </button>
+              </div>
+            </div>
+          )}
+
+          {!isConnected && (
+            <div className="mt-4 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
+              <div className="flex items-start space-x-2">
+                <Database className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Database Connection Required</p>
+                  <p className="text-sm mt-1">
+                    Please ensure your Supabase configuration is correct in the .env file. 
+                    You need VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.
+                  </p>
+                  <button 
+                    onClick={loadData}
+                    className="mt-2 text-sm bg-yellow-200 hover:bg-yellow-300 px-3 py-1 rounded transition-colors"
+                  >
+                    Retry Connection
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -495,14 +573,16 @@ const Admin: React.FC = () => {
               <div className="flex flex-wrap gap-4">
                 <button
                   onClick={() => setShowAddProduct(true)}
-                  className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors flex items-center space-x-2"
+                  disabled={!isConnected}
+                  className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Plus className="h-4 w-4" />
                   <span>Add Product</span>
                 </button>
                 <button
                   onClick={() => setShowAddCategory(true)}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+                  disabled={!isConnected}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Plus className="h-4 w-4" />
                   <span>Add Category</span>
@@ -538,81 +618,103 @@ const Admin: React.FC = () => {
               <h2 className="text-2xl font-bold text-gray-900">Products ({productList.length})</h2>
               <button
                 onClick={() => setShowAddProduct(true)}
-                className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors flex items-center space-x-2"
+                disabled={!isConnected}
+                className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="h-4 w-4" />
                 <span>Add Product</span>
               </button>
             </div>
 
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {productList.map((product) => (
-                      <tr key={product.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <img className="h-10 w-10 rounded-lg object-cover" src={product.images[0]} alt={product.name} />
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                              <div className="text-sm text-gray-500">{product.description.substring(0, 50)}...</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.category}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          <div>₹{product.price}</div>
-                          {product.originalPrice && (
-                            <div className="text-xs text-gray-500 line-through">₹{product.originalPrice}</div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`text-sm ${product.stock < 5 ? 'text-red-600 font-semibold' : 'text-gray-900'}`}>
-                            {product.stock}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            product.featured ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {product.featured ? 'Featured' : 'Regular'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => handleEditProduct(product)}
-                              className="text-amber-600 hover:text-amber-900 p-1 rounded hover:bg-amber-50"
-                              title="Edit Product"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteProduct(product.id)}
-                              className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
-                              title="Delete Product"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {productList.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-md p-8 text-center">
+                <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Products Found</h3>
+                <p className="text-gray-600 mb-4">
+                  {isConnected 
+                    ? "Start by adding your first product to the catalog."
+                    : "Connect to the database to view and manage products."
+                  }
+                </p>
+                {isConnected && (
+                  <button
+                    onClick={() => setShowAddProduct(true)}
+                    className="bg-amber-600 text-white px-6 py-2 rounded-lg hover:bg-amber-700 transition-colors"
+                  >
+                    Add Your First Product
+                  </button>
+                )}
               </div>
-            </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {productList.map((product) => (
+                        <tr key={product.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <img className="h-10 w-10 rounded-lg object-cover" src={product.images[0]} alt={product.name} />
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                                <div className="text-sm text-gray-500">{product.description.substring(0, 50)}...</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.category}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <div>₹{product.price}</div>
+                            {product.originalPrice && (
+                              <div className="text-xs text-gray-500 line-through">₹{product.originalPrice}</div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`text-sm ${product.stock < 5 ? 'text-red-600 font-semibold' : 'text-gray-900'}`}>
+                              {product.stock}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              product.featured ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {product.featured ? 'Featured' : 'Regular'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleEditProduct(product)}
+                                className="text-amber-600 hover:text-amber-900 p-1 rounded hover:bg-amber-50"
+                                title="Edit Product"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteProduct(product.id)}
+                                className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
+                                title="Delete Product"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -623,7 +725,8 @@ const Admin: React.FC = () => {
               <h2 className="text-2xl font-bold text-gray-900">Categories ({categoryList.length})</h2>
               <button
                 onClick={() => setShowAddCategory(true)}
-                className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors flex items-center space-x-2"
+                disabled={!isConnected}
+                className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="h-4 w-4" />
                 <span>Add Category</span>
@@ -640,14 +743,16 @@ const Admin: React.FC = () => {
                     <div className="flex space-x-2">
                       <button
                         onClick={() => handleEditCategory(category)}
-                        className="flex-1 bg-amber-600 text-white py-2 px-4 rounded-lg hover:bg-amber-700 transition-colors flex items-center justify-center space-x-2"
+                        disabled={!isConnected}
+                        className="flex-1 bg-amber-600 text-white py-2 px-4 rounded-lg hover:bg-amber-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Edit className="h-4 w-4" />
                         <span>Edit</span>
                       </button>
                       <button
                         onClick={() => handleDeleteCategory(category.id)}
-                        className="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors"
+                        disabled={!isConnected}
+                        className="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -884,7 +989,7 @@ const Admin: React.FC = () => {
                   </button>
                   <button
                     onClick={editingProduct ? handleUpdateProduct : handleAddProduct}
-                    disabled={isLoading}
+                    disabled={isLoading || !isConnected}
                     className="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium disabled:opacity-50 flex items-center space-x-2"
                   >
                     {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -957,7 +1062,7 @@ const Admin: React.FC = () => {
                   </button>
                   <button
                     onClick={editingCategory ? handleUpdateCategory : handleAddCategory}
-                    disabled={isLoading}
+                    disabled={isLoading || !isConnected}
                     className="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium disabled:opacity-50 flex items-center space-x-2"
                   >
                     {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
