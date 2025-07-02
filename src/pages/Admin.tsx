@@ -1,17 +1,20 @@
-import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Package, Users, ShoppingCart, TrendingUp, Eye, EyeOff, Instagram } from 'lucide-react';
-import { products, categories } from '../data/mockData';
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit, Trash2, Package, Users, ShoppingCart, TrendingUp, Eye, EyeOff, Instagram, Upload, Loader2 } from 'lucide-react';
 import { Product, Category } from '../types';
+import { ProductService } from '../services/productService';
 import InstagramIntegration from '../components/Admin/InstagramIntegration';
+import ImageUpload from '../components/Admin/ImageUpload';
 
 const Admin: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [productList, setProductList] = useState<Product[]>(products);
-  const [categoryList, setCategoryList] = useState<Category[]>(categories);
+  const [productList, setProductList] = useState<Product[]>([]);
+  const [categoryList, setCategoryList] = useState<Category[]>([]);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   // Product form state
   const [productForm, setProductForm] = useState({
@@ -24,7 +27,7 @@ const Admin: React.FC = () => {
     colors: [] as string[],
     stock: '',
     featured: false,
-    images: ['']
+    images: [] as string[]
   });
 
   // Category form state
@@ -33,6 +36,32 @@ const Admin: React.FC = () => {
     description: '',
     image: ''
   });
+
+  // Image upload states
+  const [selectedImageFiles, setSelectedImageFiles] = useState<File[]>([]);
+  const [categoryImageFile, setCategoryImageFile] = useState<File | null>(null);
+
+  // Load data on component mount
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      const [products, categories] = await Promise.all([
+        ProductService.getProducts(),
+        ProductService.getCategories()
+      ]);
+      setProductList(products);
+      setCategoryList(categories);
+    } catch (err) {
+      setError('Failed to load data. Please check your database connection.');
+      console.error('Error loading data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const resetProductForm = () => {
     setProductForm({
@@ -45,8 +74,9 @@ const Admin: React.FC = () => {
       colors: [],
       stock: '',
       featured: false,
-      images: ['']
+      images: []
     });
+    setSelectedImageFiles([]);
   };
 
   const resetCategoryForm = () => {
@@ -55,35 +85,41 @@ const Admin: React.FC = () => {
       description: '',
       image: ''
     });
+    setCategoryImageFile(null);
   };
 
-  const handleAddProduct = () => {
+  const handleAddProduct = async () => {
     if (!productForm.name || !productForm.price || !productForm.category || !productForm.stock) {
       alert('Please fill in all required fields');
       return;
     }
 
-    const newProduct: Product = {
-      id: `product-${Date.now()}`,
-      name: productForm.name,
-      description: productForm.description,
-      price: parseInt(productForm.price),
-      originalPrice: productForm.originalPrice ? parseInt(productForm.originalPrice) : undefined,
-      category: productForm.category,
-      sizes: productForm.sizes.length > 0 ? productForm.sizes : ['S', 'M', 'L', 'XL', 'XXL', '3XL'],
-      colors: productForm.colors.length > 0 ? productForm.colors : ['Default'],
-      stock: parseInt(productForm.stock),
-      featured: productForm.featured,
-      images: productForm.images.filter(img => img.trim() !== '').length > 0 
-        ? productForm.images.filter(img => img.trim() !== '') 
-        : ['/images/products/4.jpg'],
-      createdAt: new Date().toISOString()
-    };
+    setIsLoading(true);
+    try {
+      const newProduct: Omit<Product, 'id' | 'createdAt'> = {
+        name: productForm.name,
+        description: productForm.description,
+        price: parseInt(productForm.price),
+        originalPrice: productForm.originalPrice ? parseInt(productForm.originalPrice) : undefined,
+        category: productForm.category,
+        sizes: productForm.sizes.length > 0 ? productForm.sizes : ['S', 'M', 'L', 'XL', 'XXL', '3XL'],
+        colors: productForm.colors.length > 0 ? productForm.colors : ['Default'],
+        stock: parseInt(productForm.stock),
+        featured: productForm.featured,
+        images: productForm.images
+      };
 
-    setProductList([...productList, newProduct]);
-    resetProductForm();
-    setShowAddProduct(false);
-    alert('Product added successfully!');
+      const createdProduct = await ProductService.createProduct(newProduct, selectedImageFiles);
+      setProductList([createdProduct, ...productList]);
+      resetProductForm();
+      setShowAddProduct(false);
+      alert('Product added successfully!');
+    } catch (err) {
+      setError('Failed to add product. Please try again.');
+      console.error('Error adding product:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleEditProduct = (product: Product) => {
@@ -98,12 +134,12 @@ const Admin: React.FC = () => {
       colors: product.colors,
       stock: product.stock.toString(),
       featured: product.featured,
-      images: product.images.length > 0 ? product.images : ['']
+      images: product.images
     });
     setShowAddProduct(true);
   };
 
-  const handleUpdateProduct = () => {
+  const handleUpdateProduct = async () => {
     if (!editingProduct) return;
 
     if (!productForm.name || !productForm.price || !productForm.category || !productForm.stock) {
@@ -111,53 +147,98 @@ const Admin: React.FC = () => {
       return;
     }
 
-    const updatedProduct: Product = {
-      ...editingProduct,
-      name: productForm.name,
-      description: productForm.description,
-      price: parseInt(productForm.price),
-      originalPrice: productForm.originalPrice ? parseInt(productForm.originalPrice) : undefined,
-      category: productForm.category,
-      sizes: productForm.sizes.length > 0 ? productForm.sizes : ['S', 'M', 'L', 'XL', 'XXL', '3XL'],
-      colors: productForm.colors.length > 0 ? productForm.colors : ['Default'],
-      stock: parseInt(productForm.stock),
-      featured: productForm.featured,
-      images: productForm.images.filter(img => img.trim() !== '').length > 0 
-        ? productForm.images.filter(img => img.trim() !== '') 
-        : ['/images/products/4.jpg']
-    };
+    setIsLoading(true);
+    try {
+      const updates: Partial<Product> = {
+        name: productForm.name,
+        description: productForm.description,
+        price: parseInt(productForm.price),
+        originalPrice: productForm.originalPrice ? parseInt(productForm.originalPrice) : undefined,
+        category: productForm.category,
+        sizes: productForm.sizes.length > 0 ? productForm.sizes : ['S', 'M', 'L', 'XL', 'XXL', '3XL'],
+        colors: productForm.colors.length > 0 ? productForm.colors : ['Default'],
+        stock: parseInt(productForm.stock),
+        featured: productForm.featured
+      };
 
-    setProductList(productList.map(p => p.id === editingProduct.id ? updatedProduct : p));
-    resetProductForm();
-    setShowAddProduct(false);
-    setEditingProduct(null);
-    alert('Product updated successfully!');
-  };
-
-  const handleDeleteProduct = (productId: string) => {
-    if (confirm('Are you sure you want to delete this product?')) {
-      setProductList(productList.filter(p => p.id !== productId));
-      alert('Product deleted successfully!');
+      const updatedProduct = await ProductService.updateProduct(editingProduct.id, updates, selectedImageFiles);
+      setProductList(productList.map(p => p.id === editingProduct.id ? updatedProduct : p));
+      resetProductForm();
+      setShowAddProduct(false);
+      setEditingProduct(null);
+      alert('Product updated successfully!');
+    } catch (err) {
+      setError('Failed to update product. Please try again.');
+      console.error('Error updating product:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleAddCategory = () => {
+  const handleDeleteProduct = async (productId: string) => {
+    if (!confirm('Are you sure you want to delete this product? This will also delete all associated images.')) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await ProductService.deleteProduct(productId);
+      setProductList(productList.filter(p => p.id !== productId));
+      alert('Product deleted successfully!');
+    } catch (err) {
+      setError('Failed to delete product. Please try again.');
+      console.error('Error deleting product:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRemoveProductImage = async (imageUrl: string) => {
+    if (!editingProduct) return;
+
+    try {
+      await ProductService.deleteProductImage(editingProduct.id, imageUrl);
+      const updatedImages = productForm.images.filter(img => img !== imageUrl);
+      setProductForm({ ...productForm, images: updatedImages });
+      alert('Image removed successfully!');
+    } catch (err) {
+      setError('Failed to remove image. Please try again.');
+      console.error('Error removing image:', err);
+    }
+  };
+
+  const handleAddCategory = async () => {
     if (!categoryForm.name || !categoryForm.description) {
       alert('Please fill in all required fields');
       return;
     }
 
-    const newCategory: Category = {
-      id: `category-${Date.now()}`,
-      name: categoryForm.name,
-      description: categoryForm.description,
-      image: categoryForm.image || '/images/products/4.jpg'
-    };
+    setIsLoading(true);
+    try {
+      let imageUrl = categoryForm.image;
 
-    setCategoryList([...categoryList, newCategory]);
-    resetCategoryForm();
-    setShowAddCategory(false);
-    alert('Category added successfully!');
+      // Upload category image if file is selected
+      if (categoryImageFile) {
+        imageUrl = await ProductService.uploadImage(categoryImageFile, 'categories');
+      }
+
+      const newCategory: Omit<Category, 'id'> = {
+        name: categoryForm.name,
+        description: categoryForm.description,
+        image: imageUrl || '/images/products/4.jpg'
+      };
+
+      const createdCategory = await ProductService.createCategory(newCategory);
+      setCategoryList([...categoryList, createdCategory]);
+      resetCategoryForm();
+      setShowAddCategory(false);
+      alert('Category added successfully!');
+    } catch (err) {
+      setError('Failed to add category. Please try again.');
+      console.error('Error adding category:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleEditCategory = (category: Category) => {
@@ -170,7 +251,7 @@ const Admin: React.FC = () => {
     setShowAddCategory(true);
   };
 
-  const handleUpdateCategory = () => {
+  const handleUpdateCategory = async () => {
     if (!editingCategory) return;
 
     if (!categoryForm.name || !categoryForm.description) {
@@ -178,24 +259,50 @@ const Admin: React.FC = () => {
       return;
     }
 
-    const updatedCategory: Category = {
-      ...editingCategory,
-      name: categoryForm.name,
-      description: categoryForm.description,
-      image: categoryForm.image || '/images/products/4.jpg'
-    };
+    setIsLoading(true);
+    try {
+      let imageUrl = categoryForm.image;
 
-    setCategoryList(categoryList.map(c => c.id === editingCategory.id ? updatedCategory : c));
-    resetCategoryForm();
-    setShowAddCategory(false);
-    setEditingCategory(null);
-    alert('Category updated successfully!');
+      // Upload new category image if file is selected
+      if (categoryImageFile) {
+        imageUrl = await ProductService.uploadImage(categoryImageFile, 'categories');
+      }
+
+      const updates: Partial<Category> = {
+        name: categoryForm.name,
+        description: categoryForm.description,
+        image: imageUrl
+      };
+
+      const updatedCategory = await ProductService.updateCategory(editingCategory.id, updates);
+      setCategoryList(categoryList.map(c => c.id === editingCategory.id ? updatedCategory : c));
+      resetCategoryForm();
+      setShowAddCategory(false);
+      setEditingCategory(null);
+      alert('Category updated successfully!');
+    } catch (err) {
+      setError('Failed to update category. Please try again.');
+      console.error('Error updating category:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDeleteCategory = (categoryId: string) => {
-    if (confirm('Are you sure you want to delete this category?')) {
+  const handleDeleteCategory = async (categoryId: string) => {
+    if (!confirm('Are you sure you want to delete this category?')) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await ProductService.deleteCategory(categoryId);
       setCategoryList(categoryList.filter(c => c.id !== categoryId));
       alert('Category deleted successfully!');
+    } catch (err) {
+      setError('Failed to delete category. Please try again.');
+      console.error('Error deleting category:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -217,27 +324,8 @@ const Admin: React.FC = () => {
     }));
   };
 
-  const addImageField = () => {
-    setProductForm(prev => ({
-      ...prev,
-      images: [...prev.images, '']
-    }));
-  };
-
-  const updateImageField = (index: number, value: string) => {
-    setProductForm(prev => ({
-      ...prev,
-      images: prev.images.map((img, i) => i === index ? value : img)
-    }));
-  };
-
-  const removeImageField = (index: number) => {
-    if (productForm.images.length > 1) {
-      setProductForm(prev => ({
-        ...prev,
-        images: prev.images.filter((_, i) => i !== index)
-      }));
-    }
+  const handleInstagramProductsImported = (newProducts: Product[]) => {
+    setProductList(prev => [...newProducts, ...prev]);
   };
 
   const generateWhatsAppOrderReport = () => {
@@ -272,9 +360,16 @@ const Admin: React.FC = () => {
     window.open(whatsappUrl, '_blank');
   };
 
-  const handleInstagramProductsImported = (newProducts: Product[]) => {
-    setProductList(prev => [...prev, ...newProducts]);
-  };
+  if (isLoading && productList.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-amber-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading admin dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -282,7 +377,18 @@ const Admin: React.FC = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600">Manage your RAGA BY MALLIKA store</p>
+          <p className="text-gray-600">Manage your RAGA BY MALLIKA store with database integration</p>
+          {error && (
+            <div className="mt-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
+              {error}
+              <button 
+                onClick={() => setError('')}
+                className="ml-2 text-red-800 hover:text-red-900"
+              >
+                ×
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Navigation Tabs */}
@@ -586,24 +692,42 @@ const Admin: React.FC = () => {
         {/* Add/Edit Product Modal */}
         {showAddProduct && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">
                   {editingProduct ? 'Edit Product' : 'Add New Product'}
                 </h2>
                 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Product Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={productForm.name}
-                      onChange={(e) => setProductForm({...productForm, name: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                      placeholder="Enter product name"
-                    />
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Product Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={productForm.name}
+                        onChange={(e) => setProductForm({...productForm, name: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                        placeholder="Enter product name"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Category <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={productForm.category}
+                        onChange={(e) => setProductForm({...productForm, category: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                      >
+                        <option value="">Select Category</option>
+                        {categoryList.map(category => (
+                          <option key={category.id} value={category.name}>{category.name}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   <div>
@@ -617,7 +741,7 @@ const Admin: React.FC = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Price (₹) <span className="text-red-500">*</span>
@@ -640,22 +764,18 @@ const Admin: React.FC = () => {
                         placeholder="0"
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Category <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={productForm.category}
-                      onChange={(e) => setProductForm({...productForm, category: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                    >
-                      <option value="">Select Category</option>
-                      {categoryList.map(category => (
-                        <option key={category.id} value={category.name}>{category.name}</option>
-                      ))}
-                    </select>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Stock Quantity <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        value={productForm.stock}
+                        onChange={(e) => setProductForm({...productForm, stock: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                        placeholder="0"
+                      />
+                    </div>
                   </div>
 
                   <div>
@@ -699,19 +819,6 @@ const Admin: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Stock Quantity <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={productForm.stock}
-                      onChange={(e) => setProductForm({...productForm, stock: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                      placeholder="0"
-                    />
-                  </div>
-
-                  <div>
                     <label className="flex items-center">
                       <input
                         type="checkbox"
@@ -725,33 +832,12 @@ const Admin: React.FC = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Product Images</label>
-                    {productForm.images.map((image, index) => (
-                      <div key={index} className="flex items-center space-x-2 mb-2">
-                        <input
-                          type="text"
-                          value={image}
-                          onChange={(e) => updateImageField(index, e.target.value)}
-                          placeholder="Image URL (e.g., /images/products/1.jpg)"
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                        />
-                        {productForm.images.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeImageField(index)}
-                            className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={addImageField}
-                      className="text-amber-600 hover:text-amber-800 text-sm font-medium"
-                    >
-                      + Add Another Image
-                    </button>
+                    <ImageUpload
+                      onImagesSelected={setSelectedImageFiles}
+                      existingImages={editingProduct ? productForm.images : []}
+                      onRemoveExisting={editingProduct ? handleRemoveProductImage : undefined}
+                      maxImages={5}
+                    />
                   </div>
                 </div>
 
@@ -768,9 +854,11 @@ const Admin: React.FC = () => {
                   </button>
                   <button
                     onClick={editingProduct ? handleUpdateProduct : handleAddProduct}
-                    className="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium"
+                    disabled={isLoading}
+                    className="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium disabled:opacity-50 flex items-center space-x-2"
                   >
-                    {editingProduct ? 'Update Product' : 'Add Product'}
+                    {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                    <span>{editingProduct ? 'Update Product' : 'Add Product'}</span>
                   </button>
                 </div>
               </div>
@@ -815,13 +903,12 @@ const Admin: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Category Image URL</label>
-                    <input
-                      type="text"
-                      value={categoryForm.image}
-                      onChange={(e) => setCategoryForm({...categoryForm, image: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                      placeholder="Enter image URL (optional)"
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Category Image</label>
+                    <ImageUpload
+                      onImagesSelected={(files) => setCategoryImageFile(files[0] || null)}
+                      existingImages={editingCategory && categoryForm.image ? [categoryForm.image] : []}
+                      maxImages={1}
+                      multiple={false}
                     />
                   </div>
                 </div>
@@ -839,9 +926,11 @@ const Admin: React.FC = () => {
                   </button>
                   <button
                     onClick={editingCategory ? handleUpdateCategory : handleAddCategory}
-                    className="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium"
+                    disabled={isLoading}
+                    className="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium disabled:opacity-50 flex items-center space-x-2"
                   >
-                    {editingCategory ? 'Update Category' : 'Add Category'}
+                    {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                    <span>{editingCategory ? 'Update Category' : 'Add Category'}</span>
                   </button>
                 </div>
               </div>
