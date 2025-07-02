@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
+import { AuthService } from '../services/authService';
 
 interface AuthContextType {
   user: User | null;
@@ -29,13 +30,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
+
+    // Initialize Google Auth
+    AuthService.initializeGoogleAuth().catch(console.error);
+
+    // Listen for Google Sign-In events
+    const handleGoogleSignIn = (event: any) => {
+      setUser(event.detail);
+    };
+
+    const handleGoogleSignOut = () => {
+      setUser(null);
+    };
+
+    window.addEventListener('googleSignIn', handleGoogleSignIn);
+    window.addEventListener('googleSignOut', handleGoogleSignOut);
+
     setIsLoading(false);
+
+    return () => {
+      window.removeEventListener('googleSignIn', handleGoogleSignIn);
+      window.removeEventListener('googleSignOut', handleGoogleSignOut);
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
-    // Mock authentication
+    // Keep admin login for development/testing
     if (email === 'admin@ragabymallika.com' && password === 'admin123') {
       const adminUser: User = {
         id: 'admin-1',
@@ -49,44 +71,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     }
     
-    // Mock customer login
-    if (email && password) {
-      const customerUser: User = {
-        id: 'customer-1',
-        email: email,
-        name: email.split('@')[0],
-        role: 'customer'
-      };
-      setUser(customerUser);
-      localStorage.setItem('user', JSON.stringify(customerUser));
-      setIsLoading(false);
-      return true;
-    }
-    
+    // For regular users, redirect to Google Sign-In
     setIsLoading(false);
     return false;
   };
 
   const signup = async (name: string, email: string, password: string): Promise<boolean> => {
-    setIsLoading(true);
-    
-    // Mock signup
-    const newUser: User = {
-      id: `customer-${Date.now()}`,
-      email: email,
-      name: name,
-      role: 'customer'
-    };
-    
-    setUser(newUser);
-    localStorage.setItem('user', JSON.stringify(newUser));
-    setIsLoading(false);
-    return true;
+    // Redirect to Google Sign-In for new users
+    return false;
   };
 
   const logout = () => {
+    AuthService.signOut();
     setUser(null);
-    localStorage.removeItem('user');
   };
 
   return (

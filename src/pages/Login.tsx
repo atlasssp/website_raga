@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { AuthService } from '../services/authService';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -9,12 +10,28 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
   
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
   const from = location.state?.from?.pathname || '/';
+
+  useEffect(() => {
+    if (user) {
+      navigate(from, { replace: true });
+    }
+  }, [user, navigate, from]);
+
+  useEffect(() => {
+    // Render Google Sign-In button when component mounts
+    const timer = setTimeout(() => {
+      AuthService.renderGoogleSignInButton('google-signin-button');
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +43,7 @@ const Login: React.FC = () => {
       if (success) {
         navigate(from, { replace: true });
       } else {
-        setError('Invalid email or password');
+        setError('Invalid admin credentials');
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
@@ -57,98 +74,125 @@ const Login: React.FC = () => {
 
         {/* Login Form */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-white/20">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
+          {/* Google Sign-In Button */}
+          <div className="mb-6">
+            <div id="google-signin-button" className="w-full"></div>
+          </div>
 
-            {/* Email Field */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lavender-400 focus:border-transparent bg-white/50 backdrop-blur-sm"
-                  placeholder="Enter your email"
-                />
-              </div>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
             </div>
-
-            {/* Password Field */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lavender-400 focus:border-transparent bg-white/50 backdrop-blur-sm"
-                  placeholder="Enter your password"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">Or</span>
             </div>
+          </div>
 
-            {/* Submit Button */}
+          {/* Admin Login Toggle */}
+          <div className="mt-6 text-center">
             <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-lavender-500 to-rose-400 text-white py-3 px-4 rounded-lg font-semibold hover:from-lavender-600 hover:to-rose-500 focus:ring-2 focus:ring-lavender-400 focus:ring-offset-2 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+              onClick={() => setShowAdminLogin(!showAdminLogin)}
+              className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
             >
-              {isLoading ? 'Signing In...' : 'Sign In'}
+              {showAdminLogin ? 'Hide Admin Login' : 'Admin Login'}
             </button>
-          </form>
+          </div>
 
-          {/* Demo Credentials */}
+          {/* Admin Login Form */}
+          {showAdminLogin && (
+            <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
+              {/* Email Field */}
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                  Admin Email
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lavender-400 focus:border-transparent bg-white/50 backdrop-blur-sm"
+                    placeholder="Enter admin email"
+                  />
+                </div>
+              </div>
+
+              {/* Password Field */}
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                  Admin Password
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lavender-400 focus:border-transparent bg-white/50 backdrop-blur-sm"
+                    placeholder="Enter admin password"
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5 text-gray-400" />
+                    ) : (
+                      <Eye className="h-5 w-5 text-gray-400" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-gradient-to-r from-gray-600 to-gray-700 text-white py-3 px-4 rounded-lg font-semibold hover:from-gray-700 hover:to-gray-800 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+              >
+                {isLoading ? 'Signing In...' : 'Admin Sign In'}
+              </button>
+            </form>
+          )}
+
+          {/* Information */}
           <div className="mt-6 p-4 bg-gradient-to-r from-sky-50 to-mint-50 rounded-lg border border-sky-200">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Demo Credentials:</h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">How to Sign In:</h4>
             <div className="text-xs text-gray-600 space-y-1">
-              <div><strong>Admin:</strong> admin@ragabymallika.com / admin123</div>
-              <div><strong>Customer:</strong> Any email / Any password</div>
+              <div>• <strong>Customers:</strong> Use "Sign in with Google" button above</div>
+              <div>• <strong>Admin:</strong> Click "Admin Login" and use admin credentials</div>
             </div>
           </div>
 
           {/* Sign Up Link */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
+              New customer?{' '}
               <Link
                 to="/signup"
                 className="font-medium text-lavender-600 hover:text-lavender-500 transition-colors"
               >
-                Sign up here
+                Sign up with Google
               </Link>
             </p>
           </div>

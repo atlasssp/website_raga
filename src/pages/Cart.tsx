@@ -1,17 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft, CreditCard, MessageCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import { PaymentService } from '../services/paymentService';
 
 const Cart: React.FC = () => {
   const { items, updateQuantity, removeFromCart, getTotalPrice, clearCart } = useCart();
+  const { user } = useAuth();
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [customerDetails, setCustomerDetails] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: ''
+  });
 
-  const handleCheckout = () => {
+  const handleWhatsAppCheckout = () => {
     const orderDetails = {
       items: items,
       total: getTotalPrice(),
       timestamp: new Date().toLocaleString(),
-      orderNumber: `RBM${Date.now()}`
+      orderNumber: PaymentService.generateOrderId()
     };
 
     const whatsappNumber = '+918886999477';
@@ -30,13 +39,43 @@ const Cart: React.FC = () => {
 
     message += `💰 *Total Amount:* ₹${getTotalPrice()}\n\n`;
     message += `📍 *Delivery Address:* Please provide your complete address\n\n`;
+    message += `💳 *Payment:* Cash on Delivery / Online Payment\n\n`;
     message += `Thank you for shopping with RAGA BY MALLIKA! 🙏`;
 
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
+  };
+
+  const handleRazorpayPayment = async () => {
+    if (!customerDetails.name || !customerDetails.email || !customerDetails.phone) {
+      alert('Please fill in all customer details for payment');
+      return;
+    }
+
+    setIsProcessingPayment(true);
     
-    // Clear cart after order is placed
-    clearCart();
+    try {
+      const orderDetails = {
+        orderId: PaymentService.generateOrderId(),
+        items: items
+      };
+
+      const paymentSuccess = await PaymentService.initiatePayment(
+        getTotalPrice(),
+        customerDetails,
+        orderDetails
+      );
+
+      if (paymentSuccess) {
+        clearCart();
+        alert('Payment successful! Order confirmation sent to WhatsApp.');
+      }
+    } catch (error) {
+      console.error('Payment failed:', error);
+      alert('Payment failed. Please try again or use WhatsApp checkout.');
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   if (items.length === 0) {
@@ -59,6 +98,8 @@ const Cart: React.FC = () => {
       </div>
     );
   }
+
+  const finalTotal = getTotalPrice() >= 1999 ? getTotalPrice() : getTotalPrice() + 99;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -157,9 +198,7 @@ const Cart: React.FC = () => {
                 <div className="border-t pt-3">
                   <div className="flex justify-between">
                     <span className="text-lg font-bold">Total:</span>
-                    <span className="text-lg font-bold text-amber-600">
-                      ₹{getTotalPrice() >= 1999 ? getTotalPrice() : getTotalPrice() + 99}
-                    </span>
+                    <span className="text-lg font-bold text-amber-600">₹{finalTotal}</span>
                   </div>
                 </div>
               </div>
@@ -172,16 +211,69 @@ const Cart: React.FC = () => {
                 </div>
               )}
 
-              <button
-                onClick={handleCheckout}
-                className="w-full bg-gradient-to-r from-amber-600 to-orange-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-amber-700 hover:to-orange-700 transition-all duration-300 flex items-center justify-center space-x-2"
-              >
-                <span>Proceed to WhatsApp Checkout</span>
-              </button>
+              {/* Customer Details for Payment */}
+              <div className="mb-6 space-y-3">
+                <h3 className="font-semibold text-gray-900">Customer Details</h3>
+                <input
+                  type="text"
+                  placeholder="Full Name"
+                  value={customerDetails.name}
+                  onChange={(e) => setCustomerDetails({...customerDetails, name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                />
+                <input
+                  type="email"
+                  placeholder="Email Address"
+                  value={customerDetails.email}
+                  onChange={(e) => setCustomerDetails({...customerDetails, email: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                />
+                <input
+                  type="tel"
+                  placeholder="Phone Number"
+                  value={customerDetails.phone}
+                  onChange={(e) => setCustomerDetails({...customerDetails, phone: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                />
+              </div>
 
-              <p className="text-xs text-gray-500 mt-3 text-center">
-                You'll be redirected to WhatsApp to complete your order
-              </p>
+              {/* Payment Options */}
+              <div className="space-y-3">
+                <button
+                  onClick={handleRazorpayPayment}
+                  disabled={isProcessingPayment}
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50"
+                >
+                  <CreditCard className="h-5 w-5" />
+                  <span>{isProcessingPayment ? 'Processing...' : 'Pay with Razorpay'}</span>
+                </button>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">Or</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleWhatsAppCheckout}
+                  className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-4 rounded-lg font-semibold hover:from-green-700 hover:to-green-800 transition-all duration-300 flex items-center justify-center space-x-2"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  <span>WhatsApp Checkout</span>
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                <p className="text-xs text-gray-500 text-center">
+                  💳 Secure payment with Razorpay
+                </p>
+                <p className="text-xs text-gray-500 text-center">
+                  💬 Or complete order via WhatsApp
+                </p>
+              </div>
             </div>
           </div>
         </div>
