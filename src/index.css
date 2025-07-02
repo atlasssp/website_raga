@@ -1,0 +1,244 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Custom color variables using logo gold */
+:root {
+  --color-gold: #C9A961;
+  --color-gold-dark: #B8941F;
+  --color-gold-light: #E4D4A1;
+  --color-black: #1a1a1a;
+  --color-cream: #FDF6E3;
+  --color-blush: #F8E8E8;
+  --color-sage: #E8F5E8;
+  --color-lavender: #F0E8FF;
+  --color-peach: #FFE8D6;
+  --color-mint: #E8F8F5;
+}
+
+/* Base styles */
+body {
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(135deg, var(--color-cream) 0%, var(--color-blush) 50%, var(--color-lavender) 100%);
+  min-height: 100vh;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-cream);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-gold);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold-dark);
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-dark));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Shimmer effect */
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, transparent, rgba(201, 169, 97, 0.4), transparent);
+  background-size: 200px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(201, 169, 97, 0.15);
+}
+
+/* Button styles */
+.btn-gold {
+  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-dark));
+  color: white;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.btn-gold:hover {
+  background: linear-gradient(135deg, var(--color-gold-dark), var(--color-gold));
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(201, 169, 97, 0.3);
+}
+
+.btn-outline-gold {
+  border: 2px solid var(--color-gold);
+  color: var(--color-gold);
+  background: transparent;
+  transition: all 0.3s ease;
+}
+
+.btn-outline-gold:hover {
+  background: var(--color-gold);
+  color: white;
+  transform: translateY(-2px);
+}
+
+/* Text shadows for better readability */
+.text-shadow {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Pastel backgrounds */
+.bg-pastel-gradient {
+  background: linear-gradient(135deg, var(--color-cream) 0%, var(--color-blush) 25%, var(--color-sage) 50%, var(--color-lavender) 75%, var(--color-peach) 100%);
+}
+
+.bg-pastel-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(201, 169, 97, 0.1);
+}
+
+/* Loading spinner */
+.spinner-gold {
+  border: 3px solid rgba(201, 169, 97, 0.3);
+  border-top: 3px solid var(--color-gold);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Form inputs */
+.input-pastel {
+  background: rgba(255, 255, 255, 0.7);
+  border: 2px solid rgba(201, 169, 97, 0.2);
+  transition: all 0.3s ease;
+}
+
+.input-pastel:focus {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 3px rgba(201, 169, 97, 0.1);
+}
+
+/* Product cards */
+.product-card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(201, 169, 97, 0.1);
+  transition: all 0.3s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 25px 50px rgba(201, 169, 97, 0.15);
+  border-color: rgba(201, 169, 97, 0.3);
+}
+
+/* Navigation */
+.nav-glass {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(201, 169, 97, 0.1);
+}
+
+/* Footer */
+.footer-dark {
+  background: linear-gradient(135deg, var(--color-black) 0%, #2a2a2a 100%);
+}
+
+/* Testimonial cards */
+.testimonial-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 232, 232, 0.8) 100%);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(201, 169, 97, 0.1);
+}
+
+/* Category cards */
+.category-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(201, 169, 97, 0.1);
+  transition: all 0.3s ease;
+}
+
+.category-card:hover {
+  background: rgba(255, 255, 255, 0.95);
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(201, 169, 97, 0.2);
+}
+
+/* Hero section */
+.hero-gradient {
+  background: linear-gradient(135deg, var(--color-cream) 0%, var(--color-blush) 30%, var(--color-lavender) 70%, var(--color-peach) 100%);
+}
+
+/* Admin panel */
+.admin-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(201, 169, 97, 0.1);
+}
+
+/* Cart items */
+.cart-item {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(201, 169, 97, 0.1);
+}
+
+/* Responsive design helpers */
+@media (max-width: 768px) {
+  .mobile-padding {
+    padding: 1rem;
+  }
+  
+  .mobile-text {
+    font-size: 0.875rem;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
