@@ -8,26 +8,17 @@ declare global {
 }
 
 export class AuthService {
-  // Note: You need to replace this with your actual Google Client ID
-  // Get it from: https://console.cloud.google.com/
-  private static readonly GOOGLE_CLIENT_ID = '1234567890-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com';
+  // Note: Replace with your actual Google Client ID from Google Cloud Console
+  // For now, using a placeholder - you need to get this from https://console.cloud.google.com/
+  private static readonly GOOGLE_CLIENT_ID = 'your-google-client-id-here.apps.googleusercontent.com';
 
   // Initialize Google Sign-In
   static initializeGoogleAuth(): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (window.google) {
-        window.google.accounts.id.initialize({
-          client_id: this.GOOGLE_CLIENT_ID,
-          callback: this.handleGoogleSignIn,
-          auto_select: false,
-          cancel_on_tap_outside: true,
-        });
-        resolve();
-      } else {
-        // Wait for Google script to load
-        const checkGoogle = setInterval(() => {
-          if (window.google) {
-            clearInterval(checkGoogle);
+      // Check if Google script is loaded
+      const checkGoogle = () => {
+        if (window.google && window.google.accounts) {
+          try {
             window.google.accounts.id.initialize({
               client_id: this.GOOGLE_CLIENT_ID,
               callback: this.handleGoogleSignIn,
@@ -35,15 +26,17 @@ export class AuthService {
               cancel_on_tap_outside: true,
             });
             resolve();
+          } catch (error) {
+            console.warn('Google Sign-In initialization failed:', error);
+            resolve(); // Don't block the app if Google Sign-In fails
           }
-        }, 100);
+        } else {
+          // Google not loaded yet, resolve anyway to not block the app
+          setTimeout(() => resolve(), 1000);
+        }
+      };
 
-        // Timeout after 10 seconds
-        setTimeout(() => {
-          clearInterval(checkGoogle);
-          reject(new Error('Google Sign-In failed to load'));
-        }, 10000);
-      }
+      checkGoogle();
     });
   }
 
@@ -115,24 +108,43 @@ export class AuthService {
 
   // Render Google Sign-In button
   static renderGoogleSignInButton(elementId: string) {
-    if (window.google) {
-      window.google.accounts.id.renderButton(
-        document.getElementById(elementId),
-        {
-          theme: 'outline',
-          size: 'large',
-          width: '100%',
-          text: 'signin_with',
-          shape: 'rectangular',
+    try {
+      if (window.google && window.google.accounts) {
+        const element = document.getElementById(elementId);
+        if (element) {
+          window.google.accounts.id.renderButton(element, {
+            theme: 'outline',
+            size: 'large',
+            width: '100%',
+            text: 'signin_with',
+            shape: 'rectangular',
+          });
         }
-      );
+      } else {
+        // Fallback: Show a message if Google Sign-In is not available
+        const element = document.getElementById(elementId);
+        if (element) {
+          element.innerHTML = `
+            <div class="w-full p-3 border border-gray-300 rounded-lg text-center text-gray-600">
+              <p class="text-sm">Google Sign-In temporarily unavailable</p>
+              <p class="text-xs mt-1">Please use admin login or try again later</p>
+            </div>
+          `;
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to render Google Sign-In button:', error);
     }
   }
 
   // Sign out
   static signOut() {
-    if (window.google) {
-      window.google.accounts.id.disableAutoSelect();
+    try {
+      if (window.google && window.google.accounts) {
+        window.google.accounts.id.disableAutoSelect();
+      }
+    } catch (error) {
+      console.warn('Google sign out error:', error);
     }
     localStorage.removeItem('user');
     window.dispatchEvent(new CustomEvent('googleSignOut'));

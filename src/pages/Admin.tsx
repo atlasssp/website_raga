@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Package, Users, ShoppingCart, TrendingUp, Eye, EyeOff, Instagram, Upload, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Package, Users, ShoppingCart, TrendingUp, Eye, EyeOff, Instagram, Upload, Loader2, AlertCircle } from 'lucide-react';
 import { Product, Category } from '../types';
 import { ProductService } from '../services/productService';
 import InstagramIntegration from '../components/Admin/InstagramIntegration';
@@ -48,6 +48,7 @@ const Admin: React.FC = () => {
 
   const loadData = async () => {
     setIsLoading(true);
+    setError('');
     try {
       const [products, categories] = await Promise.all([
         ProductService.getProducts(),
@@ -56,8 +57,8 @@ const Admin: React.FC = () => {
       setProductList(products);
       setCategoryList(categories);
     } catch (err) {
-      setError('Failed to load data. Please check your database connection.');
       console.error('Error loading data:', err);
+      setError('Failed to load data. Please check your database connection.');
     } finally {
       setIsLoading(false);
     }
@@ -88,17 +89,38 @@ const Admin: React.FC = () => {
     setCategoryImageFile(null);
   };
 
+  const validateProductForm = () => {
+    if (!productForm.name.trim()) {
+      setError('Product name is required');
+      return false;
+    }
+    if (!productForm.price || isNaN(Number(productForm.price)) || Number(productForm.price) <= 0) {
+      setError('Valid price is required');
+      return false;
+    }
+    if (!productForm.stock || isNaN(Number(productForm.stock)) || Number(productForm.stock) < 0) {
+      setError('Valid stock quantity is required');
+      return false;
+    }
+    if (!productForm.category) {
+      setError('Category is required');
+      return false;
+    }
+    return true;
+  };
+
   const handleAddProduct = async () => {
-    if (!productForm.name || !productForm.price || !productForm.category || !productForm.stock) {
-      alert('Please fill in all required fields');
+    setError('');
+    
+    if (!validateProductForm()) {
       return;
     }
 
     setIsLoading(true);
     try {
       const newProduct: Omit<Product, 'id' | 'createdAt'> = {
-        name: productForm.name,
-        description: productForm.description,
+        name: productForm.name.trim(),
+        description: productForm.description.trim(),
         price: parseInt(productForm.price),
         originalPrice: productForm.originalPrice ? parseInt(productForm.originalPrice) : undefined,
         category: productForm.category,
@@ -114,9 +136,9 @@ const Admin: React.FC = () => {
       resetProductForm();
       setShowAddProduct(false);
       alert('Product added successfully!');
-    } catch (err) {
-      setError('Failed to add product. Please try again.');
+    } catch (err: any) {
       console.error('Error adding product:', err);
+      setError(`Failed to add product: ${err.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -141,17 +163,18 @@ const Admin: React.FC = () => {
 
   const handleUpdateProduct = async () => {
     if (!editingProduct) return;
-
-    if (!productForm.name || !productForm.price || !productForm.category || !productForm.stock) {
-      alert('Please fill in all required fields');
+    
+    setError('');
+    
+    if (!validateProductForm()) {
       return;
     }
 
     setIsLoading(true);
     try {
       const updates: Partial<Product> = {
-        name: productForm.name,
-        description: productForm.description,
+        name: productForm.name.trim(),
+        description: productForm.description.trim(),
         price: parseInt(productForm.price),
         originalPrice: productForm.originalPrice ? parseInt(productForm.originalPrice) : undefined,
         category: productForm.category,
@@ -167,9 +190,9 @@ const Admin: React.FC = () => {
       setShowAddProduct(false);
       setEditingProduct(null);
       alert('Product updated successfully!');
-    } catch (err) {
-      setError('Failed to update product. Please try again.');
+    } catch (err: any) {
       console.error('Error updating product:', err);
+      setError(`Failed to update product: ${err.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -185,9 +208,9 @@ const Admin: React.FC = () => {
       await ProductService.deleteProduct(productId);
       setProductList(productList.filter(p => p.id !== productId));
       alert('Product deleted successfully!');
-    } catch (err) {
-      setError('Failed to delete product. Please try again.');
+    } catch (err: any) {
       console.error('Error deleting product:', err);
+      setError(`Failed to delete product: ${err.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -201,15 +224,15 @@ const Admin: React.FC = () => {
       const updatedImages = productForm.images.filter(img => img !== imageUrl);
       setProductForm({ ...productForm, images: updatedImages });
       alert('Image removed successfully!');
-    } catch (err) {
-      setError('Failed to remove image. Please try again.');
+    } catch (err: any) {
       console.error('Error removing image:', err);
+      setError(`Failed to remove image: ${err.message || 'Unknown error'}`);
     }
   };
 
   const handleAddCategory = async () => {
-    if (!categoryForm.name || !categoryForm.description) {
-      alert('Please fill in all required fields');
+    if (!categoryForm.name.trim() || !categoryForm.description.trim()) {
+      setError('Category name and description are required');
       return;
     }
 
@@ -223,8 +246,8 @@ const Admin: React.FC = () => {
       }
 
       const newCategory: Omit<Category, 'id'> = {
-        name: categoryForm.name,
-        description: categoryForm.description,
+        name: categoryForm.name.trim(),
+        description: categoryForm.description.trim(),
         image: imageUrl || '/images/products/4.jpg'
       };
 
@@ -233,9 +256,9 @@ const Admin: React.FC = () => {
       resetCategoryForm();
       setShowAddCategory(false);
       alert('Category added successfully!');
-    } catch (err) {
-      setError('Failed to add category. Please try again.');
+    } catch (err: any) {
       console.error('Error adding category:', err);
+      setError(`Failed to add category: ${err.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -254,8 +277,8 @@ const Admin: React.FC = () => {
   const handleUpdateCategory = async () => {
     if (!editingCategory) return;
 
-    if (!categoryForm.name || !categoryForm.description) {
-      alert('Please fill in all required fields');
+    if (!categoryForm.name.trim() || !categoryForm.description.trim()) {
+      setError('Category name and description are required');
       return;
     }
 
@@ -269,8 +292,8 @@ const Admin: React.FC = () => {
       }
 
       const updates: Partial<Category> = {
-        name: categoryForm.name,
-        description: categoryForm.description,
+        name: categoryForm.name.trim(),
+        description: categoryForm.description.trim(),
         image: imageUrl
       };
 
@@ -280,9 +303,9 @@ const Admin: React.FC = () => {
       setShowAddCategory(false);
       setEditingCategory(null);
       alert('Category updated successfully!');
-    } catch (err) {
-      setError('Failed to update category. Please try again.');
+    } catch (err: any) {
       console.error('Error updating category:', err);
+      setError(`Failed to update category: ${err.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -298,9 +321,9 @@ const Admin: React.FC = () => {
       await ProductService.deleteCategory(categoryId);
       setCategoryList(categoryList.filter(c => c.id !== categoryId));
       alert('Category deleted successfully!');
-    } catch (err) {
-      setError('Failed to delete category. Please try again.');
+    } catch (err: any) {
       console.error('Error deleting category:', err);
+      setError(`Failed to delete category: ${err.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -360,7 +383,7 @@ const Admin: React.FC = () => {
     window.open(whatsappUrl, '_blank');
   };
 
-  if (isLoading && productList.length === 0) {
+  if (isLoading && productList.length === 0 && categoryList.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -379,14 +402,17 @@ const Admin: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
           <p className="text-gray-600">Manage your RAGA BY MALLIKA store with database integration</p>
           {error && (
-            <div className="mt-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
-              {error}
-              <button 
-                onClick={() => setError('')}
-                className="ml-2 text-red-800 hover:text-red-900"
-              >
-                ×
-              </button>
+            <div className="mt-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-start space-x-2">
+              <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p>{error}</p>
+                <button 
+                  onClick={() => setError('')}
+                  className="mt-2 text-sm text-red-800 hover:text-red-900 underline"
+                >
+                  Dismiss
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -752,6 +778,7 @@ const Admin: React.FC = () => {
                         onChange={(e) => setProductForm({...productForm, price: e.target.value})}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                         placeholder="0"
+                        min="0"
                       />
                     </div>
                     <div>
@@ -762,6 +789,7 @@ const Admin: React.FC = () => {
                         onChange={(e) => setProductForm({...productForm, originalPrice: e.target.value})}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                         placeholder="0"
+                        min="0"
                       />
                     </div>
                     <div>
@@ -774,6 +802,7 @@ const Admin: React.FC = () => {
                         onChange={(e) => setProductForm({...productForm, stock: e.target.value})}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                         placeholder="0"
+                        min="0"
                       />
                     </div>
                   </div>
@@ -847,6 +876,7 @@ const Admin: React.FC = () => {
                       setShowAddProduct(false);
                       setEditingProduct(null);
                       resetProductForm();
+                      setError('');
                     }}
                     className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                   >
@@ -919,6 +949,7 @@ const Admin: React.FC = () => {
                       setShowAddCategory(false);
                       setEditingCategory(null);
                       resetCategoryForm();
+                      setError('');
                     }}
                     className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                   >
