@@ -8,7 +8,9 @@ declare global {
 }
 
 export class AuthService {
-  private static readonly GOOGLE_CLIENT_ID = 'your-google-client-id'; // You'll need to set this up
+  // Note: You need to replace this with your actual Google Client ID
+  // Get it from: https://console.cloud.google.com/
+  private static readonly GOOGLE_CLIENT_ID = '1234567890-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com';
 
   // Initialize Google Sign-In
   static initializeGoogleAuth(): Promise<void> {
