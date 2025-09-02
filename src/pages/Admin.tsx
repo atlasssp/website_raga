@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Package, Users, ShoppingCart, TrendingUp, Eye, EyeOff, Instagram, Upload, Loader2, AlertCircle, Database, Wifi, WifiOff } from 'lucide-react';
+import { Plus, Edit, Trash2, Package, Users, ShoppingCart, TrendingUp, Eye, EyeOff, Instagram, Upload, Loader2, AlertCircle, Database } from 'lucide-react';
 import { Product, Category } from '../types';
 import { ProductService } from '../services/productService';
 import InstagramIntegration from '../components/Admin/InstagramIntegration';
@@ -15,7 +15,7 @@ const Admin: React.FC = () => {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(true); // Always connected for in-memory store
 
   // Product form state
   const [productForm, setProductForm] = useState({
@@ -50,11 +50,11 @@ const Admin: React.FC = () => {
   const checkDatabaseConnection = async () => {
     try {
       const connected = await ProductService.checkConnection();
-      setIsConnected(connected);
-      return connected;
+      setIsConnected(true); // Always true for in-memory store
+      return true;
     } catch (error) {
-      setIsConnected(false);
-      return false;
+      setIsConnected(true);
+      return true;
     }
   };
 
@@ -63,15 +63,6 @@ const Admin: React.FC = () => {
     setError('');
     
     try {
-      // Check database connection first
-      const connected = await checkDatabaseConnection();
-      
-      if (!connected) {
-        setError('Database connection failed. Please check your Supabase configuration in the .env file.');
-        setIsLoading(false);
-        return;
-      }
-
       const [products, categories] = await Promise.all([
         ProductService.getProducts(),
         ProductService.getCategories()
@@ -138,11 +129,6 @@ const Admin: React.FC = () => {
     setError('');
     
     if (!validateProductForm()) {
-      return;
-    }
-
-    if (!isConnected) {
-      setError('Database not connected. Please check your Supabase configuration.');
       return;
     }
 
@@ -439,22 +425,7 @@ const Admin: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-gray-600">Manage your RAGA BY MALLIKA store with database integration</p>
-            </div>
-            
-            {/* Connection Status */}
-            <div className="flex items-center space-x-2">
-              {isConnected ? (
-                <div className="flex items-center space-x-2 text-green-600">
-                  <Wifi className="h-5 w-5" />
-                  <span className="text-sm font-medium">Database Connected</span>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-2 text-red-600">
-                  <WifiOff className="h-5 w-5" />
-                  <span className="text-sm font-medium">Database Disconnected</span>
-                </div>
-              )}
+              <p className="text-gray-600">Manage your RAGA BY MALLIKA store</p>
             </div>
           </div>
           
@@ -473,26 +444,17 @@ const Admin: React.FC = () => {
             </div>
           )}
 
-          {!isConnected && (
-            <div className="mt-4 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
-              <div className="flex items-start space-x-2">
-                <Database className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-medium">Database Connection Required</p>
-                  <p className="text-sm mt-1">
-                    Please ensure your Supabase configuration is correct in the .env file. 
-                    You need VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.
-                  </p>
-                  <button 
-                    onClick={loadData}
-                    className="mt-2 text-sm bg-yellow-200 hover:bg-yellow-300 px-3 py-1 rounded transition-colors"
-                  >
-                    Retry Connection
-                  </button>
-                </div>
+          <div className="mt-4 bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg">
+            <div className="flex items-start space-x-2">
+              <Database className="h-5 w-5 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium">Using In-Memory Data Store</p>
+                <p className="text-sm mt-1">
+                  Data is stored temporarily in memory. Connect your preferred database for persistent storage.
+                </p>
               </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Navigation Tabs */}
@@ -618,9 +580,7 @@ const Admin: React.FC = () => {
               <h2 className="text-2xl font-bold text-gray-900">Products ({productList.length})</h2>
               <button
                 onClick={() => setShowAddProduct(true)}
-                disabled={!isConnected}
-                className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+                className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors flex items-center space-x-2"
                 <Plus className="h-4 w-4" />
                 <span>Add Product</span>
               </button>
@@ -630,20 +590,13 @@ const Admin: React.FC = () => {
               <div className="bg-white rounded-lg shadow-md p-8 text-center">
                 <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Products Found</h3>
-                <p className="text-gray-600 mb-4">
-                  {isConnected 
-                    ? "Start by adding your first product to the catalog."
-                    : "Connect to the database to view and manage products."
-                  }
-                </p>
-                {isConnected && (
-                  <button
-                    onClick={() => setShowAddProduct(true)}
-                    className="bg-amber-600 text-white px-6 py-2 rounded-lg hover:bg-amber-700 transition-colors"
-                  >
-                    Add Your First Product
-                  </button>
-                )}
+                <p className="text-gray-600 mb-4">Start by adding your first product to the catalog.</p>
+                <button
+                  onClick={() => setShowAddProduct(true)}
+                  className="bg-amber-600 text-white px-6 py-2 rounded-lg hover:bg-amber-700 transition-colors"
+                >
+                  Add Your First Product
+                </button>
               </div>
             ) : (
               <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -725,9 +678,7 @@ const Admin: React.FC = () => {
               <h2 className="text-2xl font-bold text-gray-900">Categories ({categoryList.length})</h2>
               <button
                 onClick={() => setShowAddCategory(true)}
-                disabled={!isConnected}
-                className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+                className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors flex items-center space-x-2"
                 <Plus className="h-4 w-4" />
                 <span>Add Category</span>
               </button>
@@ -743,16 +694,14 @@ const Admin: React.FC = () => {
                     <div className="flex space-x-2">
                       <button
                         onClick={() => handleEditCategory(category)}
-                        disabled={!isConnected}
-                        className="flex-1 bg-amber-600 text-white py-2 px-4 rounded-lg hover:bg-amber-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 bg-amber-600 text-white py-2 px-4 rounded-lg hover:bg-amber-700 transition-colors flex items-center justify-center space-x-2"
                       >
                         <Edit className="h-4 w-4" />
                         <span>Edit</span>
                       </button>
                       <button
                         onClick={() => handleDeleteCategory(category.id)}
-                        disabled={!isConnected}
-                        className="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -989,7 +938,7 @@ const Admin: React.FC = () => {
                   </button>
                   <button
                     onClick={editingProduct ? handleUpdateProduct : handleAddProduct}
-                    disabled={isLoading || !isConnected}
+                    disabled={isLoading}
                     className="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium disabled:opacity-50 flex items-center space-x-2"
                   >
                     {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -1062,7 +1011,7 @@ const Admin: React.FC = () => {
                   </button>
                   <button
                     onClick={editingCategory ? handleUpdateCategory : handleAddCategory}
-                    disabled={isLoading || !isConnected}
+                    disabled={isLoading}
                     className="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium disabled:opacity-50 flex items-center space-x-2"
                   >
                     {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
