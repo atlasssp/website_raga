@@ -581,6 +581,7 @@ const Admin: React.FC = () => {
               <button
                 onClick={() => setShowAddProduct(true)}
                 className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors flex items-center space-x-2"
+              >
                 <Plus className="h-4 w-4" />
                 <span>Add Product</span>
               </button>
@@ -679,6 +680,7 @@ const Admin: React.FC = () => {
               <button
                 onClick={() => setShowAddCategory(true)}
                 className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors flex items-center space-x-2"
+              >
                 <Plus className="h-4 w-4" />
                 <span>Add Category</span>
               </button>
