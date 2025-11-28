@@ -1,7 +1,10 @@
-// Supabase removed - using in-memory data store
-// Replace this file with your preferred database configuration
+import { createClient } from '@supabase/supabase-js';
 
-export const mockDatabase = {
-  connected: true,
-  // Add your database client here when ready
-};
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables');
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
