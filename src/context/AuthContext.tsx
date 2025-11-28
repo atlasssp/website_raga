@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
+import { api } from '../lib/api';
 
 interface AuthContextType {
   user: User | null;
@@ -24,7 +25,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored user session
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
@@ -34,64 +34,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    
-    // Admin login
-    if (email === 'admin@ragabymallika.com' && password === 'admin123') {
-      const adminUser: User = {
-        id: 'admin-1',
-        email: 'admin@ragabymallika.com',
-        name: 'Admin',
-        role: 'admin'
-      };
-      setUser(adminUser);
-      localStorage.setItem('user', JSON.stringify(adminUser));
+
+    try {
+      const response = await api.auth.login(email, password);
+
+      setUser(response.user);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('authToken', response.token);
       setIsLoading(false);
       return true;
-    }
-    
-    // Customer login - accept any valid email/password combination
-    if (email && password && email.includes('@') && password.length >= 6) {
-      const customerUser: User = {
-        id: `customer-${Date.now()}`,
-        email: email,
-        name: email.split('@')[0],
-        role: 'customer'
-      };
-      setUser(customerUser);
-      localStorage.setItem('user', JSON.stringify(customerUser));
+    } catch (error) {
+      console.error('Login error:', error);
       setIsLoading(false);
-      return true;
+      return false;
     }
-    
-    setIsLoading(false);
-    return false;
   };
 
   const signup = async (name: string, email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    
-    // Simple signup validation
-    if (name && email && password && email.includes('@') && password.length >= 6) {
-      const newUser: User = {
-        id: `customer-${Date.now()}`,
-        email: email,
-        name: name,
-        role: 'customer'
-      };
-      
-      setUser(newUser);
-      localStorage.setItem('user', JSON.stringify(newUser));
+
+    try {
+      const response = await api.auth.signup(name, email, password);
+
+      setUser(response.user);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('authToken', response.token);
       setIsLoading(false);
       return true;
+    } catch (error) {
+      console.error('Signup error:', error);
+      setIsLoading(false);
+      return false;
     }
-    
-    setIsLoading(false);
-    return false;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await api.auth.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('authToken');
   };
 
   return (

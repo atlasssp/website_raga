@@ -1,117 +1,73 @@
 import { Product, Category } from '../types';
-import { products as mockProducts, categories as mockCategories } from '../data/mockData';
-
-// In-memory data store (replace with your preferred database)
-let productsStore: Product[] = [...mockProducts];
-let categoriesStore: Category[] = [...mockCategories];
+import { api } from '../lib/api';
 
 export class ProductService {
-  // Check connection (always true for in-memory store)
   static async checkConnection(): Promise<boolean> {
-    return true;
+    try {
+      await api.products.getAll();
+      return true;
+    } catch {
+      return false;
+    }
   }
 
-  // Upload image (mock implementation)
   static async uploadImage(file: File, folder: string = 'products'): Promise<string> {
-    // Mock image upload - returns a placeholder URL
-    // Replace with your preferred image storage solution
     return '/images/products/4.jpg';
   }
 
-  // Delete image (mock implementation)
   static async deleteImage(imageUrl: string): Promise<void> {
-    // Mock image deletion
-    console.log('Mock: Deleting image:', imageUrl);
+    console.log('Deleting image:', imageUrl);
   }
 
-  // Fetch all categories
   static async getCategories(): Promise<Category[]> {
-    return [...categoriesStore];
+    return api.categories.getAll();
   }
 
-  // Get default categories
   static getDefaultCategories(): Category[] {
-    return [...mockCategories];
+    return [];
   }
 
-  // Create default categories (no-op for in-memory)
   static async createDefaultCategories(): Promise<void> {
-    // No-op for in-memory store
   }
 
-  // Create category
   static async createCategory(category: Omit<Category, 'id'>): Promise<Category> {
-    const newCategory: Category = {
-      id: `category-${Date.now()}`,
-      ...category
-    };
-    
-    categoriesStore.push(newCategory);
-    return newCategory;
+    return api.categories.create(category);
   }
 
-  // Update category
   static async updateCategory(id: string, updates: Partial<Category>): Promise<Category> {
-    const index = categoriesStore.findIndex(cat => cat.id === id);
-    if (index === -1) {
-      throw new Error('Category not found');
-    }
-
-    categoriesStore[index] = { ...categoriesStore[index], ...updates };
-    return categoriesStore[index];
+    return api.categories.update(id, updates);
   }
 
-  // Delete category
   static async deleteCategory(id: string): Promise<void> {
-    categoriesStore = categoriesStore.filter(cat => cat.id !== id);
+    await api.categories.delete(id);
   }
 
-  // Fetch all products
   static async getProducts(): Promise<Product[]> {
-    return [...productsStore];
+    return api.products.getAll();
   }
 
-  // Create product
   static async createProduct(productData: Omit<Product, 'id' | 'createdAt'>, imageFiles: File[] = []): Promise<Product> {
-    // Validate required fields
     if (!productData.name || !productData.price || !productData.category) {
       throw new Error('Name, price, and category are required fields.');
     }
 
-    const newProduct: Product = {
-      id: `product-${Date.now()}`,
-      createdAt: new Date().toISOString(),
+    return api.products.create({
       ...productData,
-      images: productData.images && productData.images.length > 0 
-        ? productData.images 
+      images: productData.images && productData.images.length > 0
+        ? productData.images
         : ['/images/products/4.jpg']
-    };
-
-    productsStore.push(newProduct);
-    return newProduct;
+    });
   }
 
-  // Update product
   static async updateProduct(id: string, updates: Partial<Product>, newImageFiles: File[] = []): Promise<Product> {
-    const index = productsStore.findIndex(product => product.id === id);
-    if (index === -1) {
-      throw new Error('Product not found');
-    }
-
-    productsStore[index] = { ...productsStore[index], ...updates };
-    return productsStore[index];
+    return api.products.update(id, updates);
   }
 
-  // Delete product
   static async deleteProduct(id: string): Promise<void> {
-    productsStore = productsStore.filter(product => product.id !== id);
+    await api.products.delete(id);
   }
 
-  // Delete specific product image
   static async deleteProductImage(productId: string, imageUrl: string): Promise<void> {
-    const product = productsStore.find(p => p.id === productId);
-    if (product) {
-      product.images = product.images.filter(img => img !== imageUrl);
-    }
+    console.log('Deleting product image:', productId, imageUrl);
   }
 }
