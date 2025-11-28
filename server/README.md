@@ -6,26 +6,35 @@ This is the backend API server for Raga by Mallika e-commerce platform.
 
 ### 1. Database Setup
 
-1. Open phpMyAdmin at: https://db.serverbyt.in/index.php
-2. Select your database: `ragabymallika-353131357aa2`
-3. Click on the "SQL" tab
-4. Copy the entire contents of `server/database/schema.sql`
-5. Paste it into the SQL editor and click "Go"
-6. The script will create all necessary tables and insert default data
+Your database credentials are already configured:
+- Host: mysql.gb.stackcp.com:41499
+- Database: ragabymallika
+- Username: ragabymallika
+- Password: aaryan@123
+- Remote IP: 139.5.250.49
+
+To set up the database:
+1. Connect to your MySQL database using phpMyAdmin or MySQL client
+2. Run the SQL script from `server/database/schema.sql`
+3. This will create all necessary tables and insert default data
 
 ### 2. Server Configuration
 
-1. Copy `server/.env.example` to `server/.env`
-2. Update the following values in `server/.env`:
+The `.env.example` file already contains your database credentials. Simply copy it:
 
+```bash
+cp server/.env.example server/.env
+```
+
+The configuration is:
 ```env
-DB_HOST=db.serverbyt.in
-DB_USER=your_mysql_username
-DB_PASSWORD=your_mysql_password
-DB_NAME=ragabymallika-353131357aa2
-DB_PORT=3306
+DB_HOST=mysql.gb.stackcp.com
+DB_USER=ragabymallika
+DB_PASSWORD=aaryan@123
+DB_NAME=ragabymallika
+DB_PORT=41499
 
-JWT_SECRET=your_random_secret_key_here
+JWT_SECRET=raga_by_mallika_secret_2025_production
 PORT=3001
 
 FRONTEND_URL=https://ragabymallika.in
