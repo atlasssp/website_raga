@@ -2,6 +2,8 @@
 
 A beautiful, modern ecommerce website for ethnic wear with integrated payment solutions and Google authentication.
 
+**Live Website:** https://ragabymallika.in
+
 ## 🚀 Features
 
 ### 🛍️ **Ecommerce Functionality**
@@ -125,11 +127,12 @@ Fully optimized for:
 - Professional appearance
 
 ## 🚀 **Deployment**
-Ready for production deployment with:
+Deployed on ServerByte hosting at **ragabymallika.in** with:
 - Optimized build process
 - CDN-ready assets
 - Environment configuration
 - Scalable architecture
+- Custom domain configuration
 
 ---
 
