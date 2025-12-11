@@ -1,0 +1,206 @@
+================================================================================
+RAGA BY MALLIKA - ServerByte Deployment Instructions
+Domain: ragabymallika.in
+================================================================================
+
+WHAT'S READY:
+✓ Production build completed successfully
+✓ All files optimized and ready to deploy
+✓ .htaccess file configured for proper routing
+✓ SSL/HTTPS configuration ready
+✓ Security headers enabled
+✓ Performance optimizations applied
+
+FILES LOCATION:
+All deployment files are in the "dist" folder
+
+================================================================================
+DEPLOYMENT METHOD 1: cPanel File Manager (Recommended)
+================================================================================
+
+STEP 1: Login to cPanel
+- Go to your ServerByte control panel
+- Login with your credentials
+
+STEP 2: Open File Manager
+- Find "File Manager" in cPanel
+- Click to open
+
+STEP 3: Navigate to Website Root
+- Go to "public_html" folder
+- This is where your website files go
+
+STEP 4: Upload Files
+- Click "Upload" button at the top
+- Upload ALL files from the "dist" folder:
+  ✓ index.html
+  ✓ .htaccess
+  ✓ assets folder (entire folder)
+  ✓ images folder (entire folder)
+
+STEP 5: Verify Upload
+- Refresh File Manager
+- You should see:
+  - index.html
+  - .htaccess
+  - assets/ folder
+  - images/ folder
+
+================================================================================
+DEPLOYMENT METHOD 2: FTP Upload
+================================================================================
+
+STEP 1: Get FTP Credentials
+- From ServerByte control panel
+- Look for "FTP Accounts" section
+- Note: hostname, username, password
+
+STEP 2: Download FileZilla (if needed)
+- Free FTP client: https://filezilla-project.org/
+
+STEP 3: Connect to Your Server
+- Host: ftp.ragabymallika.in (or provided hostname)
+- Username: your FTP username
+- Password: your FTP password
+- Port: 21
+
+STEP 4: Upload Files
+- In FileZilla, navigate to "public_html" on the server (right side)
+- On your computer (left side), find the "dist" folder
+- Drag ALL contents from "dist" folder to "public_html"
+
+================================================================================
+POST-UPLOAD CONFIGURATION
+================================================================================
+
+ENABLE SSL (HTTPS):
+1. In cPanel, find "SSL/TLS Status"
+2. Click on it
+3. Find "ragabymallika.in" in the list
+4. Click "Run AutoSSL"
+5. Wait 5-10 minutes for certificate to be issued
+
+VERIFY YOUR WEBSITE:
+1. Open browser
+2. Go to: https://ragabymallika.in
+3. Check if website loads
+
+TEST THESE FEATURES:
+□ Homepage loads
+□ Navigate to Products page
+□ Click on a product
+□ Test Add to Cart
+□ Test Login page
+□ Refresh page (should NOT show 404)
+□ Test on mobile device
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+PROBLEM: 404 Error when refreshing pages
+SOLUTION: Make sure .htaccess file is uploaded to public_html
+
+PROBLEM: Website shows blank white screen
+SOLUTION:
+- Press F12 in browser to see errors
+- Check if all files uploaded correctly
+- Verify Supabase credentials in your .env file
+
+PROBLEM: HTTPS not working
+SOLUTION:
+- Wait longer (SSL can take up to 24 hours)
+- Contact ServerByte support
+- Check SSL/TLS Status in cPanel
+
+PROBLEM: Images not loading
+SOLUTION:
+- Verify "assets" folder uploaded completely
+- Check file permissions (should be 644 for files, 755 for folders)
+
+================================================================================
+IMPORTANT NOTES
+================================================================================
+
+1. ENVIRONMENT VARIABLES:
+   Make sure your .env file has correct Supabase credentials before building
+
+2. ADMIN ACCESS:
+   Default admin login (change password after first login):
+   Email: admin@ragabymallika.com
+   Password: admin123
+
+3. RAZORPAY:
+   Already configured with your live key
+   Test with small amounts first
+
+4. WHATSAPP:
+   Make sure phone number is active for order notifications
+
+5. DOMAIN DNS:
+   If domain was just purchased, wait 24-48 hours for DNS propagation
+
+================================================================================
+GETTING HELP
+================================================================================
+
+ServerByte Support:
+- Check your welcome email for support contact
+- Look for "Support" or "Help Desk" in your control panel
+
+File Issues:
+- Check file permissions in File Manager
+- Verify all files uploaded without errors
+
+Technical Issues:
+- Check browser console (F12) for error messages
+- Verify Supabase database is active
+- Test all API endpoints
+
+================================================================================
+WHAT'S INCLUDED IN YOUR WEBSITE
+================================================================================
+
+✓ Full ecommerce platform
+✓ Product catalog with categories
+✓ Shopping cart system
+✓ User authentication (Google sign-in)
+✓ Admin panel for product management
+✓ Razorpay payment integration
+✓ WhatsApp order system
+✓ Instagram integration for products
+✓ Mobile responsive design
+✓ SEO optimized
+✓ SSL/HTTPS ready
+✓ Performance optimized
+✓ Security headers configured
+
+================================================================================
+FINAL CHECKLIST
+================================================================================
+
+Before going live:
+□ All files uploaded to public_html
+□ SSL certificate installed and active
+□ Website loads at https://ragabymallika.in
+□ All pages accessible (Products, Cart, Login, Admin)
+□ Images loading correctly
+□ Cart functionality working
+□ Admin panel accessible
+□ Payment system tested
+□ Mobile view responsive
+□ Changed default admin password
+□ Verified Supabase connection
+□ Tested order flow end-to-end
+
+================================================================================
+
+YOUR WEBSITE IS READY TO GO LIVE! 🚀
+
+Once you complete the upload, ragabymallika.in will be live and accessible
+to customers worldwide!
+
+For detailed step-by-step guide, see: DEPLOYMENT_GUIDE.md
+For quick reference, see: QUICK_DEPLOY.md
+
+================================================================================
