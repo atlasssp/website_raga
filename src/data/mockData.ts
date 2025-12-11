@@ -5,31 +5,31 @@ export const categories: Category[] = [
     id: '1',
     name: 'Kurtis',
     description: 'Beautiful traditional kurtis in various styles',
-    image: '/images/products/4.jpg'
+    image: 'https://images.pexels.com/photos/1586973/pexels-photo-1586973.jpeg?auto=compress&cs=tinysrgb&w=800'
   },
   {
     id: '2',
     name: 'Lehengas',
     description: 'Elegant lehengas for special occasions',
-    image: '/images/products/9.jpg'
+    image: 'https://images.pexels.com/photos/1059155/pexels-photo-1059155.jpeg?auto=compress&cs=tinysrgb&w=800'
   },
   {
     id: '3',
     name: 'Co-ord Sets',
     description: 'Trendy coordinated sets for modern women',
-    image: '/images/products/10.jpg'
+    image: 'https://images.pexels.com/photos/1926769/pexels-photo-1926769.jpeg?auto=compress&cs=tinysrgb&w=800'
   },
   {
     id: '4',
     name: 'Anarkali Sets',
     description: 'Classic Anarkali suits with timeless appeal',
-    image: '/images/products/11.jpg'
+    image: 'https://images.pexels.com/photos/1183266/pexels-photo-1183266.jpeg?auto=compress&cs=tinysrgb&w=800'
   },
   {
     id: '5',
     name: 'Pure Cottons',
     description: 'Comfortable pure cotton collections',
-    image: '/images/products/12.jpg'
+    image: 'https://images.pexels.com/photos/1926620/pexels-photo-1926620.jpeg?auto=compress&cs=tinysrgb&w=800'
   }
 ];
 
@@ -40,7 +40,7 @@ export const products: Product[] = [
     description: 'Beautiful purple and white Anarkali set with intricate embroidery and traditional patterns. Perfect for festive occasions.',
     price: 2499,
     originalPrice: 3499,
-    images: ['/images/products/11.jpg'],
+    images: ['https://images.pexels.com/photos/1183266/pexels-photo-1183266.jpeg?auto=compress&cs=tinysrgb&w=800'],
     category: 'Anarkali Sets',
     sizes: ['S', 'M', 'L', 'XL', 'XXL', '3XL'],
     colors: ['Purple', 'White'],
@@ -54,7 +54,7 @@ export const products: Product[] = [
     description: 'Stunning mustard yellow Anarkali dress with floral prints and traditional embroidery. Made from premium cotton fabric.',
     price: 2799,
     originalPrice: 3799,
-    images: ['/images/products/9.jpg'],
+    images: ['https://images.pexels.com/photos/1059155/pexels-photo-1059155.jpeg?auto=compress&cs=tinysrgb&w=800'],
     category: 'Anarkali Sets',
     sizes: ['S', 'M', 'L', 'XL', 'XXL', '3XL'],
     colors: ['Mustard Yellow'],
@@ -68,7 +68,7 @@ export const products: Product[] = [
     description: 'Elegant black and white coordinated set with modern floral patterns. Perfect for casual and semi-formal occasions.',
     price: 1899,
     originalPrice: 2499,
-    images: ['/images/products/10.jpg'],
+    images: ['https://images.pexels.com/photos/1926769/pexels-photo-1926769.jpeg?auto=compress&cs=tinysrgb&w=800'],
     category: 'Co-ord Sets',
     sizes: ['S', 'M', 'L', 'XL', 'XXL', '3XL'],
     colors: ['Black', 'White'],
@@ -82,7 +82,7 @@ export const products: Product[] = [
     description: 'Unique brown saree with umbrella prints and golden border. Made from pure cotton with comfortable drape.',
     price: 1599,
     originalPrice: 2199,
-    images: ['/images/products/12.jpg'],
+    images: ['https://images.pexels.com/photos/1926620/pexels-photo-1926620.jpeg?auto=compress&cs=tinysrgb&w=800'],
     category: 'Pure Cottons',
     sizes: ['S', 'M', 'L', 'XL', 'XXL', '3XL'],
     colors: ['Brown', 'Golden'],
@@ -96,7 +96,7 @@ export const products: Product[] = [
     description: 'Traditional blue suit with elephant prints and intricate border designs. Perfect for cultural events and festivals.',
     price: 2199,
     originalPrice: 2899,
-    images: ['/images/products/4.jpg'],
+    images: ['https://images.pexels.com/photos/1586973/pexels-photo-1586973.jpeg?auto=compress&cs=tinysrgb&w=800'],
     category: 'Pure Cottons',
     sizes: ['S', 'M', 'L', 'XL', 'XXL', '3XL'],
     colors: ['Blue', 'White'],

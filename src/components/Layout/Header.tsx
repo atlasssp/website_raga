@@ -56,11 +56,9 @@ const Header: React.FC = () => {
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center group">
-            <img 
-              src="/images/Raga_Logo.jpg" 
-              alt="RAGA BY MALLIKA" 
-              className="h-16 w-auto object-contain transition-transform group-hover:scale-105"
-            />
+            <div className="text-2xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent transition-transform group-hover:scale-105">
+              RAGA BY MALLIKA
+            </div>
           </Link>
 
           {/* Desktop Navigation */}
